@@ -165,7 +165,9 @@ int tmin(void) {
  *   Rating: 1
  */
 int isTmax(int x) {
-  return !(x + 0x80000001);
+  int y = x + 1;
+  int z = ~y + 1;
+  return !!y & !(y ^ z);
 }
 /* 
  * allOddBits - return 1 if all odd-numbered bits in word set to 1
@@ -199,9 +201,9 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  int lower_bound = x + (~0x30 + 1); // x - 0x30
-  int upper_bound = 0x39 + (~x + 1); // 0x39 - x
-  return !(lower_bound >> 31) & !(upper_bound >> 31);
+  int y = (x + (~0x30 + 1)) >> 31;
+  int z = (0x39 + (~x + 1)) >> 31;
+  return !y & !z;
 }
 /* 
  * conditional - same as x ? y : z 
@@ -211,7 +213,9 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+  int k = !!x;
+  int condit = ~k + 1;
+  return (~condit & z) | (condit & y);
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -221,7 +225,8 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+  int z = ~x + 1;
+  return !((y + z) >> 31);
 }
 //4
 /* 
@@ -233,7 +238,8 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return 2;
+  int y = ~x + 1;
+  return ((((x ^ y) >> 31) & 1) ^ 1) & (((x >> 31) & 1) ^ 1) ;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -248,7 +254,23 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  return 0;
+  int sign = x >> 31;          // 获取符号位 (0 或 -1)
+  x = x ^ sign;                // 如果是负数，取补码 (正数保持不变)
+
+  // 用二分法逐步找到最高有效位
+  int bit16 = !!(x >> 16) << 4; // 检查高 16 位是否有 1
+  x >>= bit16;                 // 如果高 16 位有 1，右移 16 位
+  int bit8 = !!(x >> 8) << 3;  // 检查高 8 位
+  x >>= bit8;                  // 如果高 8 位有 1，右移 8 位
+  int bit4 = !!(x >> 4) << 2;  // 检查高 4 位
+  x >>= bit4;                  // 如果高 4 位有 1，右移 4 位
+  int bit2 = !!(x >> 2) << 1;  // 检查高 2 位
+  x >>= bit2;                  // 如果高 2 位有 1，右移 2 位
+  int bit1 = !!(x >> 1);       // 检查高 1 位
+  x >>= bit1;                  // 如果高 1 位有 1，右移 1 位
+  int bit0 = x;                // 剩下的最后一位
+
+  return bit16 + bit8 + bit4 + bit2 + bit1 + bit0 + 1; // 总位数 = 各部分位数 + 1
 }
 //float
 /* 
