@@ -178,7 +178,9 @@ int isTmax(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-  return !((x & 0xAAAAAAAA) ^ 0xAAAAAAAA);
+  int helper = 0xAA + (0xAA << 8);
+  helper = helper + (helper << 16);
+  return !((x & helper) ^ helper);
 }
 /* 
  * negate - return -x 
@@ -254,21 +256,22 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
+  int bit0, bit1, bit2, bit4, bit8, bit16;
   int sign = x >> 31;          // 获取符号位 (0 或 -1)
   x = x ^ sign;                // 如果是负数，取补码 (正数保持不变)
 
   // 用二分法逐步找到最高有效位
-  int bit16 = !!(x >> 16) << 4; // 检查高 16 位是否有 1
+  bit16 = !!(x >> 16) << 4; // 检查高 16 位是否有 1
   x >>= bit16;                 // 如果高 16 位有 1，右移 16 位
-  int bit8 = !!(x >> 8) << 3;  // 检查高 8 位
+  bit8 = !!(x >> 8) << 3;  // 检查高 8 位
   x >>= bit8;                  // 如果高 8 位有 1，右移 8 位
-  int bit4 = !!(x >> 4) << 2;  // 检查高 4 位
+  bit4 = !!(x >> 4) << 2;  // 检查高 4 位
   x >>= bit4;                  // 如果高 4 位有 1，右移 4 位
-  int bit2 = !!(x >> 2) << 1;  // 检查高 2 位
+  bit2 = !!(x >> 2) << 1;  // 检查高 2 位
   x >>= bit2;                  // 如果高 2 位有 1，右移 2 位
-  int bit1 = !!(x >> 1);       // 检查高 1 位
+  bit1 = !!(x >> 1);       // 检查高 1 位
   x >>= bit1;                  // 如果高 1 位有 1，右移 1 位
-  int bit0 = x;                // 剩下的最后一位
+  bit0 = x;                // 剩下的最后一位
 
   return bit16 + bit8 + bit4 + bit2 + bit1 + bit0 + 1; // 总位数 = 各部分位数 + 1
 }
@@ -285,7 +288,22 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-  return 2;
+  unsigned s_mask = 0x80000000, exp_mask = 0x7F800000, frac_mask = 0x007fffff;
+  unsigned s = uf & s_mask, exp = uf & exp_mask, frac = uf & frac_mask;
+  unsigned exp_max = 255<<23;
+
+  if (exp == exp_max) {
+    uf = uf;
+  } else if (exp == 0){
+    uf = s | exp | (frac << 1);
+  } else {
+    exp = exp + (1 << 23);
+    if (exp == exp_max) {
+      frac = frac & 0;
+    } 
+    uf = s | exp | frac;
+  }
+  return uf;
 }
 /* 
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -300,7 +318,30 @@ unsigned floatScale2(unsigned uf) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-  return 2;
+  unsigned s_mask = 0x80000000, exp_mask = 0x7F800000, frac_mask = 0x007fffff;
+  int s = uf & s_mask, exp = uf & exp_mask, frac = uf & frac_mask;
+  int low8_mask = 0x000000ff;
+  int bias = 127;
+  int result;
+  exp = ((exp >> 23) & low8_mask) - bias;
+
+  if (exp > 30 ) {
+    result = 0x80000000;
+    return result;
+  }
+  if (exp < 0) {
+    result = 0;
+  } else {
+    if (exp > 23) {
+      result = (1 << exp) | (frac << (exp - 23));
+    }
+    result = (1 << exp) | (frac >> (23 - exp));
+  }
+  if (s == s_mask) {
+    result = -result;
+  }
+
+return result;
 }
 /* 
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
@@ -316,5 +357,14 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+  unsigned INF = 0x7f800000, Zero = 0x00000000;
+  unsigned exp;
+  if (x > 127) {
+    return INF;
+  }
+  if (x < -126) {
+    return Zero;
+  }
+  exp = x + 127;
+  return exp << 23;
 }
