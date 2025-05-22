@@ -418,25 +418,25 @@ Disassembly of section .text:
   400fc9:	48 83 c4 18          	add    $0x18,%rsp
   400fcd:	c3                   	ret    
 
-0000000000400fce <func4>: //edx = e  esi = 0
+0000000000400fce <func4>:
   400fce:	48 83 ec 08          	sub    $0x8,%rsp
-  400fd2:	89 d0                	mov    %edx,%eax // r = z
-  400fd4:	29 f0                	sub    %esi,%eax // r = z - y
-  400fd6:	89 c1                	mov    %eax,%ecx // j = r =z - y
-  400fd8:	c1 e9 1f             	shr    $0x1f,%ecx //j = j >> 31 = (z-y) >> 31
-  400fdb:	01 c8                	add    %ecx,%eax // r = r + j = z - y+ (z-y)>>31
-  400fdd:	d1 f8                	sar    %eax //r = z - y+ (z-y)>>31 / 2
-  400fdf:	8d 0c 30             	lea    (%rax,%rsi,1),%ecx //j = r + y = z + y+ (z-y)>>31 / 2
-  400fe2:	39 f9                	cmp    %edi,%ecx // j - x ---> z和y中中位数与 x的关系
-  400fe4:	7e 0c                	jle    400ff2 <func4+0x24> // 若x 小于或等于中位数
-  400fe6:	8d 51 ff             	lea    -0x1(%rcx),%edx // 若大于 则 z = r - 1  中位数-1
+  400fd2:	89 d0                	mov    %edx,%eax
+  400fd4:	29 f0                	sub    %esi,%eax
+  400fd6:	89 c1                	mov    %eax,%ecx
+  400fd8:	c1 e9 1f             	shr    $0x1f,%ecx
+  400fdb:	01 c8                	add    %ecx,%eax
+  400fdd:	d1 f8                	sar    %eax
+  400fdf:	8d 0c 30             	lea    (%rax,%rsi,1),%ecx
+  400fe2:	39 f9                	cmp    %edi,%ecx
+  400fe4:	7e 0c                	jle    400ff2 <func4+0x24>
+  400fe6:	8d 51 ff             	lea    -0x1(%rcx),%edx
   400fe9:	e8 e0 ff ff ff       	call   400fce <func4>
   400fee:	01 c0                	add    %eax,%eax
   400ff0:	eb 15                	jmp    401007 <func4+0x39>
   400ff2:	b8 00 00 00 00       	mov    $0x0,%eax
-  400ff7:	39 f9                	cmp    %edi,%ecx // j - x 中位数和 x的关系
+  400ff7:	39 f9                	cmp    %edi,%ecx
   400ff9:	7d 0c                	jge    401007 <func4+0x39>
-  400ffb:	8d 71 01             	lea    0x1(%rcx),%esi //若中位数小于x y= z + 1 
+  400ffb:	8d 71 01             	lea    0x1(%rcx),%esi
   400ffe:	e8 cb ff ff ff       	call   400fce <func4>
   401003:	8d 44 00 01          	lea    0x1(%rax,%rax,1),%eax
   401007:	48 83 c4 08          	add    $0x8,%rsp
@@ -450,17 +450,17 @@ Disassembly of section .text:
   40101f:	b8 00 00 00 00       	mov    $0x0,%eax
   401024:	e8 c7 fb ff ff       	call   400bf0 <__isoc99_sscanf@plt>
   401029:	83 f8 02             	cmp    $0x2,%eax
-  40102c:	75 07                	jne    401035 <phase_4+0x29> //若输入数 数量不等于二 则引爆
-  40102e:	83 7c 24 08 0e       	cmpl   $0xe,0x8(%rsp) 
-  401033:	76 05                	jbe    40103a <phase_4+0x2e> //若输入的第一个数大于0xe 则引爆
+  40102c:	75 07                	jne    401035 <phase_4+0x29>
+  40102e:	83 7c 24 08 0e       	cmpl   $0xe,0x8(%rsp)
+  401033:	76 05                	jbe    40103a <phase_4+0x2e>
   401035:	e8 00 04 00 00       	call   40143a <explode_bomb>
   40103a:	ba 0e 00 00 00       	mov    $0xe,%edx
   40103f:	be 00 00 00 00       	mov    $0x0,%esi
-  401044:	8b 7c 24 08          	mov    0x8(%rsp),%edi //第一个输入的数设置为传入func4的第一个参数
+  401044:	8b 7c 24 08          	mov    0x8(%rsp),%edi
   401048:	e8 81 ff ff ff       	call   400fce <func4>
-  40104d:	85 c0                	test   %eax,%eax // eax = 0 即rax = 0
+  40104d:	85 c0                	test   %eax,%eax
   40104f:	75 07                	jne    401058 <phase_4+0x4c>
-  401051:	83 7c 24 0c 00       	cmpl   $0x0,0xc(%rsp) //输入的第二个数为0
+  401051:	83 7c 24 0c 00       	cmpl   $0x0,0xc(%rsp)
   401056:	74 05                	je     40105d <phase_4+0x51>
   401058:	e8 dd 03 00 00       	call   40143a <explode_bomb>
   40105d:	48 83 c4 18          	add    $0x18,%rsp
@@ -469,38 +469,38 @@ Disassembly of section .text:
 0000000000401062 <phase_5>:
   401062:	53                   	push   %rbx
   401063:	48 83 ec 20          	sub    $0x20,%rsp
-  401067:	48 89 fb             	mov    %rdi,%rbx //rbx 存储已读数据的地址
+  401067:	48 89 fb             	mov    %rdi,%rbx
   40106a:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax
   401071:	00 00 
-  401073:	48 89 44 24 18       	mov    %rax,0x18(%rsp) //canary on stack 24bytes
-  401078:	31 c0                	xor    %eax,%eax // 清零rax
-  40107a:	e8 9c 02 00 00       	call   40131b <string_length> //获取已读数据的长度
+  401073:	48 89 44 24 18       	mov    %rax,0x18(%rsp)
+  401078:	31 c0                	xor    %eax,%eax
+  40107a:	e8 9c 02 00 00       	call   40131b <string_length>
   40107f:	83 f8 06             	cmp    $0x6,%eax
-  401082:	74 4e                	je     4010d2 <phase_5+0x70> //若已读数据的长度等于6则跳转到 [1]
-  401084:	e8 b1 03 00 00       	call   40143a <explode_bomb> // 不等于6则引爆
+  401082:	74 4e                	je     4010d2 <phase_5+0x70>
+  401084:	e8 b1 03 00 00       	call   40143a <explode_bomb>
   401089:	eb 47                	jmp    4010d2 <phase_5+0x70>
-  40108b:	0f b6 0c 03          	movzbl (%rbx,%rax,1),%ecx       // [2] ecx = x[i] ，其中 i = 0 
-  40108f:	88 0c 24             	mov    %cl,(%rsp) // 将字符复制到rsp所指的地方
-  401092:	48 8b 14 24          	mov    (%rsp),%rdx // 并赋给rdx
-  401096:	83 e2 0f             	and    $0xf,%edx  // 保留edx的低四位其余清零
-  401099:	0f b6 92 b0 24 40 00 	movzbl 0x4024b0(%rdx),%edx //用x[i]字符的低四位加上offset寻址，取1Byte给edx
-  4010a0:	88 54 04 10          	mov    %dl,0x10(%rsp,%rax,1) // 将改 1Byte存到 （rsp+10+i)
-  4010a4:	48 83 c0 01          	add    $0x1,%rax  // i++
-  4010a8:	48 83 f8 06          	cmp    $0x6,%rax   
-  4010ac:	75 dd                	jne    40108b <phase_5+0x29>  // 若 i < 6 则跳转到 [2]
-  4010ae:	c6 44 24 16 00       	movb   $0x0,0x16(%rsp) //相当于加上终止符号\0
+  40108b:	0f b6 0c 03          	movzbl (%rbx,%rax,1),%ecx
+  40108f:	88 0c 24             	mov    %cl,(%rsp)
+  401092:	48 8b 14 24          	mov    (%rsp),%rdx
+  401096:	83 e2 0f             	and    $0xf,%edx
+  401099:	0f b6 92 b0 24 40 00 	movzbl 0x4024b0(%rdx),%edx
+  4010a0:	88 54 04 10          	mov    %dl,0x10(%rsp,%rax,1)
+  4010a4:	48 83 c0 01          	add    $0x1,%rax
+  4010a8:	48 83 f8 06          	cmp    $0x6,%rax
+  4010ac:	75 dd                	jne    40108b <phase_5+0x29>
+  4010ae:	c6 44 24 16 00       	movb   $0x0,0x16(%rsp)
   4010b3:	be 5e 24 40 00       	mov    $0x40245e,%esi
   4010b8:	48 8d 7c 24 10       	lea    0x10(%rsp),%rdi
   4010bd:	e8 76 02 00 00       	call   401338 <strings_not_equal>
-  4010c2:	85 c0                	test   %eax,%eax    // 若两个字符串相等则退出
-  4010c4:	74 13                	je     4010d9 <phase_5+0x77> //跳转到 [3] 
+  4010c2:	85 c0                	test   %eax,%eax
+  4010c4:	74 13                	je     4010d9 <phase_5+0x77>
   4010c6:	e8 6f 03 00 00       	call   40143a <explode_bomb>
   4010cb:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
   4010d0:	eb 07                	jmp    4010d9 <phase_5+0x77>
-  4010d2:	b8 00 00 00 00       	mov    $0x0,%eax              //  [1] 清零eax
-  4010d7:	eb b2                	jmp    40108b <phase_5+0x29>  // 跳转到 [2]
-  4010d9:	48 8b 44 24 18       	mov    0x18(%rsp),%rax      // [3] 检查是否有缓存区泄露  
-  4010de:	64 48 33 04 25 28 00 	xor    %fs:0x28,%rax //检查canary是否改变
+  4010d2:	b8 00 00 00 00       	mov    $0x0,%eax
+  4010d7:	eb b2                	jmp    40108b <phase_5+0x29>
+  4010d9:	48 8b 44 24 18       	mov    0x18(%rsp),%rax
+  4010de:	64 48 33 04 25 28 00 	xor    %fs:0x28,%rax
   4010e5:	00 00 
   4010e7:	74 05                	je     4010ee <phase_5+0x8c>
   4010e9:	e8 42 fa ff ff       	call   400b30 <__stack_chk_fail@plt>
@@ -687,18 +687,18 @@ Disassembly of section .text:
 
 000000000040131b <string_length>:
   40131b:	80 3f 00             	cmpb   $0x0,(%rdi)
-  40131e:	74 12                	je     401332 <string_length+0x17> // 若x的低8位为0则跳转到 [1]
+  40131e:	74 12                	je     401332 <string_length+0x17>
   401320:	48 89 fa             	mov    %rdi,%rdx
   401323:	48 83 c2 01          	add    $0x1,%rdx
   401327:	89 d0                	mov    %edx,%eax
   401329:	29 f8                	sub    %edi,%eax
   40132b:	80 3a 00             	cmpb   $0x0,(%rdx)
-  40132e:	75 f3                	jne    401323 <string_length+0x8> 
+  40132e:	75 f3                	jne    401323 <string_length+0x8>
   401330:	f3 c3                	repz ret 
-  401332:	b8 00 00 00 00       	mov    $0x0,%eax // [1]
+  401332:	b8 00 00 00 00       	mov    $0x0,%eax
   401337:	c3                   	ret    
 
-0000000000401338 <strings_not_equal>: //equal 返回0 
+0000000000401338 <strings_not_equal>:
   401338:	41 54                	push   %r12
   40133a:	55                   	push   %rbp
   40133b:	53                   	push   %rbx
