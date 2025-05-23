@@ -1,5 +1,7 @@
 b 73
 r
-b phase_5
-j *0x401062
+b phase_6
+b 107
+j 107
+
 
