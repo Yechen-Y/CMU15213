@@ -4,6 +4,14 @@
 #include <stdio.h>
 
 static void printfUsage();
+static int checkCorrect();
+static cache initCache();
+static void freeCache(cache myCache);
+
+
+static int opt, sFlag, EFlag, bFlag, tFlag, vFlag;
+static int sNum, ENum, bNum;
+static char* fileName;
 
 typedef struct
 {
@@ -11,6 +19,9 @@ typedef struct
     int flagbit; // 标志位
     int useTimes; // 使用的次数用来实现LRU算法
 } line;
+typedef line* set;
+typedef set* cache;
+
 
 
 // 定义一个cache结构体，用malloc()分配大小，结构体应该包括？set(指针数组？)???
@@ -23,10 +34,6 @@ typedef struct
 
 int main(int argc, char *argv[])
 {   
-    int opt, sFlag, EFlag, bFlag, tFlag, vFlag;
-    int sNum, ENum, bNum;
-    char fileName;
-
     // Init Flag 
     sFlag = 0;
     EFlag = 0;
@@ -65,8 +72,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    // check getopt correctness 
-    
+    // check getopt correctness
+    if (checkCorrect() == 0) {
+        printfUsage();
+        exit(0); // exit the program successfully
+    }
+    initCache();
 
 
     printSummary(0, 0, 0);
@@ -87,4 +98,23 @@ static void printfUsage() {
     printf("Examples:\n");
     printf("  linux>  ./csim -s 4 -E 1 -b 4 -t traces/yi.trace\n");
     printf("  linux>  ./csim -v -s 8 -E 2 -b 4 -t traces/yi.trace\n");
+}
+
+static int checkCorrect() {
+    return (sFlag & EFlag & bFlag & tFlag) == 1;
+}
+
+static cache initCache() {
+    cache myCache = (cache)malloc(sNum * sizeof(set));
+    for (int count = 0; count < sNum; count++) {
+        myCache[count] = (set)malloc(ENum * sizeof(line));
+    }
+    return myCache;
+}
+
+static void freeCache(cache myCache) {
+    for (int count = 0; count < sNum; count++) {
+        free(myCache[count]);
+    }
+    free(myCache);
 }
