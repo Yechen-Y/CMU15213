@@ -165,6 +165,13 @@ int main(int argc, char **argv)
 */
 void eval(char *cmdline) 
 {
+    char **argv;
+    // parseline the commandline，这里返回bg/fg
+    parseline(cmdline, argv);
+
+    // 判断是否为built-in cmd 
+    //如果是则跳转到builtin_cmd()执行相关的cmd
+
     return;
 }
 
@@ -175,6 +182,7 @@ void eval(char *cmdline)
  * argument.  Return true if the user has requested a BG job, false if
  * the user has requested a FG job.  
  */
+// return 1 if bg or blank line or return 0 if fg
 int parseline(const char *cmdline, char **argv) 
 {
     static char array[MAXLINE]; /* holds local copy of command line */
@@ -229,8 +237,19 @@ int parseline(const char *cmdline, char **argv)
  * builtin_cmd - If the user has typed a built-in command then execute
  *    it immediately.  
  */
-int builtin_cmd(char **argv) 
-{
+// 如果是内置函数则立刻执行否则返回0
+int builtin_cmd(char **argv)  
+{   
+    if (strcmp(argv[0], "quit") == 0) {
+        exit(0); // terminate the shell
+        return 1;
+    } else if (strcmp(argv[0], "jobs") == 0) {
+        listjobs(jobs);
+        return 1;
+    } else if (strcmp(argv[0], "bg") == 0 || strcmp(argv[0], "fg") == 0) {
+        do_bgfg(argv);
+        return 1;
+    }
     return 0;     /* not a builtin command */
 }
 
@@ -239,6 +258,11 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv) 
 {
+    if (strcmp(argv[0], "bg") == 0) {
+
+    } else {
+        
+    }
     return;
 }
 
@@ -247,6 +271,13 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid)
 {
+    struct job_t *job = getjobpid(jobs, pid);
+    if (job == NULL) {
+        return;
+    }
+    while(fgpid(jobs) == pid) { //spin
+
+    }
     return;
 }
 
@@ -261,8 +292,44 @@ void waitfg(pid_t pid)
  *     available zombie children, but doesn't wait for any other
  *     currently running children to terminate.  
  */
+// 如果我们在handler内部修改了全局数据结构，那么我们必须在修改前后，阻塞信号，保证数据结构的完整性
 void sigchld_handler(int sig) 
 {
+    // 非阻塞 use waitpid() to reap zombie children
+    int olderrno = errno;
+    int status;
+    pid_t pid;
+    sigset_t mask_all, mask_pre;
+    
+    sigfillset(&mask_all);
+    // 当要修改全局数据结构时，请将所有信号屏蔽,why?
+
+    while((pid = waitpid(-1, &status, WUNTRACED | WNOHANG)) > 0) {
+        // process exit normally
+        // 删除该job
+        if (WIFEXITED(status)) {
+            sigprocmask(SIG_SETMASK, &mask_all, &mask_pre);
+            deletejob(&jobs, pid);
+            sigprocmask(SIG_SETMASK, &mask_pre, NULL);
+        } 
+
+        // process stop since the signal
+        // 由信号停止，更新状态即可/是否需要打印状态？
+        if (WIFSTOPPED(status)) {
+            sigprocmask(SIG_SETMASK, &mask_all, &mask_pre);
+            jobs[pid2jid(pid)].state = ST;
+            sigprocmask(SIG_SETMASK, &mask_pre, NULL);
+        }
+    }
+
+    // 处理报错 errno
+    // 如果字进程不为空且pid小于零
+    if (errno != ECHILD && pid == -1) {
+        unix_error("waitpid error");
+    }
+
+    // 恢复errno
+    errno = olderrno;
     return;
 }
 
@@ -273,7 +340,14 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
-    return;
+    int olderrno = errno;
+    pid_t pid = fgpid(jobs);
+    if (pid) {
+        kill(-pid, sig);
+    }
+    errno = olderrno;
+    return; 
+
 }
 
 /*
@@ -283,6 +357,12 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig) 
 {
+    int olderrno = errno;
+    pid_t pid = fgpid(jobs);
+    if (pid) {
+        kill(-pid, sig);
+    }
+    errno = olderrno;
     return;
 }
 
