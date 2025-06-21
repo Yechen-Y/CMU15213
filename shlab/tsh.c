@@ -165,12 +165,59 @@ int main(int argc, char **argv)
 */
 void eval(char *cmdline) 
 {
-    char **argv;
+    char *argv[MAXARGS];
+    int state;
+    pid_t pid;
+    sigset_t mask_pre, mask_CHLD;
     // parseline the commandline，这里返回bg/fg
-    parseline(cmdline, argv);
+    state = parseline(cmdline, argv);
+    // 判断是否为built-in， 如果是则立即执行并不会fork一个新的进程
+    if (argv[0] == NULL) {
+        return;
+    }
+    if (builtin_cmd(argv)){
+        return;
+    }
+    // 非内置函数的情况
+    // 1: 创建一个新的process，并分配一个job，以及修改job的属性
+    // 2. 在fork()一个进程前，要阻塞SIGCHLD，避免parent和child
+    // 的race，parent在addjob之前就因为收到SIGCHLD执行delete导致加入一个空job
+    sigemptyset(&mask_CHLD);
+    sigaddset(&mask_CHLD, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &mask_CHLD, &mask_pre);
+    // forking
+    pid = fork();
+    if (pid < 0) {
+        unix_error("fork error");
+    }
 
-    // 判断是否为built-in cmd 
-    //如果是则跳转到builtin_cmd()执行相关的cmd
+    if (pid == 0) {
+        // child
+        setpgid(0,0); // 将pgid 分配为 pid，每个进程都单独属于一个组
+        sigprocmask(SIG_SETMASK, &mask_pre, NULL);
+        if (execvp(argv[0], argv) < 0) {
+            printf("%s: Command not found\n", argv[0]);
+            exit(1);
+        }
+        
+    } else {
+        // parent
+        if (state) {
+            addjob(jobs, pid, BG, cmdline);
+        } else {
+            addjob(jobs, pid, FG, cmdline);
+        }
+        sigprocmask(SIG_SETMASK, &mask_pre, NULL);
+
+        if (!state) {
+            waitfg(pid);
+        } else {
+            // printf for bg
+            printf("[%d] (%d) %s", pid2jid(pid), pid, cmdline);
+        }
+
+    }
+
 
     return;
 }
@@ -237,12 +284,11 @@ int parseline(const char *cmdline, char **argv)
  * builtin_cmd - If the user has typed a built-in command then execute
  *    it immediately.  
  */
-// 如果是内置函数则立刻执行否则返回0
+// 如果是内置函数则立刻执行否则返回0, 内置函数没有bg?
 int builtin_cmd(char **argv)  
 {   
     if (strcmp(argv[0], "quit") == 0) {
         exit(0); // terminate the shell
-        return 1;
     } else if (strcmp(argv[0], "jobs") == 0) {
         listjobs(jobs);
         return 1;
@@ -258,10 +304,36 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv) 
 {
-    if (strcmp(argv[0], "bg") == 0) {
+    int jid;
+    pid_t pid;
+    struct job_t *job;
 
+    // 从command line 获取 pid, 以及初始化job
+    if (argv[1][0] == '%') {
+        jid = atoi(argv[1] + 1);// 指针向后移动一位，跳过%
+        job = getjobjid(jobs, jid);
+        if (job == NULL) {
+            printf("%s: No such job\n", argv[1]);
+            return;
+        }
+        pid = job->pid;
     } else {
-        
+        pid = atoi(argv[1]);
+        job = getjobpid(jobs, pid);
+        if (job == NULL) {
+            printf("%s: No such process\n", argv[1]);
+            return;
+        }
+    }
+
+    // kill for each time
+    kill(-pid, SIGCONT);
+    if (strcmp(argv[0], "bg") == 0) {
+        job->state = BG;
+        printf("[%d] (%d) %s", job->jid, job->pid, job->cmdline);
+    } else {
+        job->state = FG;
+        waitfg(job->pid);
     }
     return;
 }
@@ -276,7 +348,7 @@ void waitfg(pid_t pid)
         return;
     }
     while(fgpid(jobs) == pid) { //spin
-
+        sleep(1); // 每隔一段时间检查一次条件，避免占用CPU太多资源
     }
     return;
 }
@@ -309,15 +381,26 @@ void sigchld_handler(int sig)
         // 删除该job
         if (WIFEXITED(status)) {
             sigprocmask(SIG_SETMASK, &mask_all, &mask_pre);
-            deletejob(&jobs, pid);
+            deletejob(jobs, pid);
             sigprocmask(SIG_SETMASK, &mask_pre, NULL);
         } 
+        // terminate by signal
+        if (WIFSIGNALED(status)) {
+            sigprocmask(SIG_SETMASK, &mask_all, &mask_pre);
+            int jid = pid2jid(pid);
+            printf("Job [%d] (%d) terminated by signal %d\n", jid, pid, WTERMSIG(status));
+            deletejob(jobs, pid);
+            sigprocmask(SIG_SETMASK, &mask_pre, NULL);
+        }
 
         // process stop since the signal
         // 由信号停止，更新状态即可/是否需要打印状态？
         if (WIFSTOPPED(status)) {
             sigprocmask(SIG_SETMASK, &mask_all, &mask_pre);
-            jobs[pid2jid(pid)].state = ST;
+            struct job_t* job = getjobpid(jobs, pid);
+            job->state = ST;
+            int jid = pid2jid(pid);
+            printf("Job [%d] (%d) Stopped by signal %d\n", jid, pid, WSTOPSIG(status));
             sigprocmask(SIG_SETMASK, &mask_pre, NULL);
         }
     }
